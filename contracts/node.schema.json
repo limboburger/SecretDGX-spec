@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/limboburger/SecretDGX/blob/main/node.schema.json",
+  "title": "SecretDGX node set",
+  "description": "Describes ~/Library/Application Support/secretdgx/nodes.json — the authorized node list consumed at runtime by the dock apps (NodeConfig.all loader in Sources/main.swift) and by the shell scripts. Setup wizard (setup_wizard.sh) writes this file; an AI agent OR human instantiating the repo for a new environment can author it by hand instead of running the wizard, provided SSH + the dock key (~/.ssh/id_secretdgx) are already in place.",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "required": ["name", "host", "ip", "user", "group", "source", "reachable", "authOk"],
+    "additionalProperties": true,
+    "properties": {
+      "name": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9._-]+$",
+        "description": "Node identity. Flows into bundle id (local.secretdgx.SecretDGX-<name>), the .app bundle name, and the --node argument. Restricted to a safe charset because it becomes a file/executable name."
+      },
+      "user": {
+        "type": "string",
+        "description": "SSH login user on the node. Any account with nvidia-smi access works ('nvidia' on a stock DGX Spark, 'a'/'a3' on some fleets, any admin account on a workstation)."
+      },
+      "ip": { "type": "string", "description": "Node LAN IP. Direct nodes use user@ip to SSH." },
+      "host": { "type": "string", "description": "Host address — equals ip for direct nodes; kept for the jump/indirect case." },
+      "group": {
+        "type": "string",
+        "description": "Informational fleet name (e.g. 'r', 'a', 'a3'). Does not select a key — the fleet shares one dock key."
+      },
+      "source": {
+        "type": "string",
+        "enum": ["mdns", "sweep", "config", "manual"],
+        "description": "How discovery found the node. cosmetic."
+      },
+      "reachable": { "type": "boolean", "description": "True when the SSH path answered a probe at discovery time." },
+      "authOk": { "type": "boolean", "description": "True when the dock key authenticates on this node. Runtime icons only render for authorized nodes." },
+      "isDgx": {
+        "type": "boolean",
+        "description": "True for DGX Spark / NVIDIA boxes (ran nvidia-smi). Label only, not a gate — any nvidia-smi host appears (e.g. an RTX 6000 workstation)."
+      },
+      "indirectVia": {
+        "type": "string",
+        "description": "Present only for nodes behind a jump host. SSH target becomes 'sdgx-<name>' resolved through ~/.ssh/config.secretdgx (which carries the ProxyJump). The hop leg authenticates with the user's normal key."
+      }
+    },
+    "oneOf": [
+      {
+        "title": "direct node",
+        "description": "sshHost = user@ip (self-contained, no ~/.ssh/config required)",
+        "required": ["user", "ip"],
+        "not": { "required": ["indirectVia"] }
+      },
+      {
+        "title": "indirect node (behind jump)",
+        "description": "sshHost = sdgx-<name> resolved via config.secretdgx ProxyJump",
+        "required": ["indirectVia"]
+      }
+    ]
+  }
+}
