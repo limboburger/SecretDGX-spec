@@ -1,4 +1,4 @@
-# SecretDGX — spec skeleton (Level 1)
+# SecretDGX — spec skeleton 
 
 > The **bare-metal, agent-oriented** form. This repo holds the *idea + the
 > invariant contracts + the adapter seams* — **no working implementation**.
